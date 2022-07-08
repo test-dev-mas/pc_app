@@ -1,4 +1,5 @@
-import csv, os
+import csv, os, serial
+import serial.tools.list_ports
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
@@ -53,8 +54,10 @@ class test_frame(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
 
-        self.start_button = ttk.Button(self, text="Start")
-        self.start_button.grid(column=0, rowspan=4, sticky="nsew", padx=10, pady=10)
+        self.test_button_state = 0
+
+        self.test_button = ttk.Button(self, text="Start",command=self.test_button_clicked)
+        self.test_button.grid(column=0, rowspan=4, sticky="nsew", padx=10, pady=10)
 
         self.serial_number_label = ttk.Label(self, text="Serial Number")
         self.serial_number_label.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
@@ -68,11 +71,24 @@ class test_frame(ttk.Frame):
         self.operator_number_entry = ttk.Entry(self)
         self.operator_number_entry.grid(row=3, column=1, sticky="nsew", padx=10, pady=10)
 
-        test_window = ScrolledText(self)
-        test_window.grid(row=4,columnspan=2)
-        test_window.insert(tk.INSERT, "hi mom")
+        self.test_window = ScrolledText(self)
+        self.test_window.grid(row=4,columnspan=2)
+        self.test_window.insert(tk.INSERT, "PC app ready" + '\n')
 
         self.grid(column=1, row=0, sticky="nsew")
+
+    def test_button_clicked(self):
+        if self.test_button_state == 0:
+            self.test_button_state = 1    
+            self.test_button.configure(text="Stop")
+
+            self.test_window.insert(tk.INSERT, "Starting test ..." + '\n')
+
+        elif self.test_button_state == 1:
+            self.test_button_state = 0
+            self.test_button.configure(text="Start")
+
+            self.test_window.insert(tk.INSERT, "Stoping test ..." + '\n')
 
 # results frame
 class result_frame(ttk.Frame):
