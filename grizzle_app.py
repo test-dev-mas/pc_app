@@ -155,10 +155,12 @@ class Controller():
         self.view = view
 
     def start_test(self):
-        pass
+        # TODO: SEND SERIAL TO AVR
+        print("start test")
 
     def abort_test(self):
-        pass
+        # TODO: SEND SERIAL TO AVR
+        print("abort test")
 
 class App(tk.Tk):
     def __init__(self):
