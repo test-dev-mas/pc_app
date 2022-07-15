@@ -6,7 +6,44 @@ from tkinter.scrolledtext import ScrolledText
 from PIL import ImageTk, Image
 
 
+class Model(serial.Serial):
+    def __init__(self):
+        super().__init__()
 
+        self.arduino_port = None
+
+        for port in serial.tools.list_ports.comports():
+            if port.pid == 0x7523 and port.vid == 0x1a86:
+                self.arduino_port = port.device
+
+        if self.arduino_port is None:
+            raise ValueError('Device not found')
+
+        self.port = self.arduino_port
+        self.baudrate = 115200
+        self.timeout = 10
+        self.open()
+
+
+        # self.data = data
+
+        self.header = ["Date/Time", "QR CODE", "POWER ON", "GROUND", "PILOT STATE A", "PILOT STATE B", "DIODE", "OVER CURRENT",
+        "GFCI_L1_LOW LEAKAGE", "GFCI_L1_HIGH LEAKAGE", "GFCI_L2_LOW LEAKAGE", "GFCI_L2_HIGH LEAKAGE", "STUCK RELAY"]
+
+        self.save(self.header)
+
+    def save(self, data):
+        dir_name = 'log'
+
+        if not os.path.exists(dir_name):
+            os.mkdir(dir_name)
+            print("Directory", dir_name, "created")
+        else:
+            print("Directory", dir_name, "already exists")
+
+        with open(dir_name + '/01.csv', 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(data)
 
 # three frames make up the app windows: navigation, test, individual result
 
@@ -77,18 +114,30 @@ class test_frame(ttk.Frame):
 
         self.grid(column=1, row=0, sticky="nsew")
 
+        # set controller
+        self.controller = None
+
+    def set_controller(self, controller):
+        self.controller = controller
+
     def test_button_clicked(self):
         if self.test_button_state == 0:
             self.test_button_state = 1    
-            self.test_button.configure(text="Stop")
+            self.test_button.configure(text="Abort")
 
             self.test_window.insert(tk.INSERT, "Starting test ..." + '\n')
+
+            if self.controller:
+                self.controller.start_test()
 
         elif self.test_button_state == 1:
             self.test_button_state = 0
             self.test_button.configure(text="Start")
 
             self.test_window.insert(tk.INSERT, "Stoping test ..." + '\n')
+
+            if self.controller:
+                self.controller.abort_test()
 
 # results frame
 class result_frame(ttk.Frame):
@@ -99,6 +148,17 @@ class result_frame(ttk.Frame):
         tree.grid(column=0, row=0, sticky="nsew")
 
         self.grid(column=1, row=0, sticky="nsew")
+
+class Controller():
+    def __init__(self, model, view):
+        self.model = model
+        self.view = view
+
+    def start_test(self):
+        pass
+
+    def abort_test(self):
+        pass
 
 class App(tk.Tk):
     def __init__(self):
@@ -120,18 +180,19 @@ class App(tk.Tk):
         # self.columnconfigure(0, weight=1)
         # self.columnconfigure(1, weight=6)
 
-class Model():
-    def __init__(self, data):
-        self.data = data
+        # create a model
+        model = Model()
 
-        self.header = ["Date/Time", "QR CODE", "POWER ON", "GROUND", "PILOT STATE A", "PILOT STATE B", "DIODE", "OVER CURRENT", "GFCI_L1_LOW LEAKAGE", "GFCI_L1_HIGH LEAKAGE", "GFCI_L2_LOW LEAKAGE", "GFCI_L2_HIGH LEAKAGE", "STUCK RELAY"]
+        # create a view and place it on root window
+        view = navigation_frame(self)
+        # navigation_frame also handles switching of test_frame and result_frame
 
-    def save(self):
-        with open('log/01.csv', 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow()
+        # create a controller
+        controller = Controller(model, view)
+
+        # it's a little convoluted, frames[1] is a instance of test_frame created inside an instance of navigation_frame
+        view.frames[1].set_controller(controller)
 
 if __name__ == "__main__":
     app = App()
-    frame_1 = navigation_frame(app)
     app.mainloop()
